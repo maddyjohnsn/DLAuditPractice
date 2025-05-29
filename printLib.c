@@ -10,7 +10,6 @@
 //credits to https://www.tutorialspoint.com/what-is-the-ld-preload-trick-on-linux
 //credits to https://gist.github.com/tailriver/30bf0c943325330b7b6a for help with DLopen
 
-
 int printf(const char *format, ...){
 	
 	//sets up dlopen to open the shared library containing print
@@ -25,8 +24,8 @@ int printf(const char *format, ...){
 
 	//myPrintf = dlsym(handle, "printf");
 	
-	int (*sprintf_ptr)(const char *format, ...) = dlsym(handle, "sprintf");
-	if (!sprintf_ptr) {
+	int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+	if (!printf_ptr) {
         	//if symbol can't be found (should be the needed function I'm replacing)
         	fprintf(stderr, "Error: %s\n", dlerror());
         	dlclose(handle);
@@ -35,9 +34,6 @@ int printf(const char *format, ...){
 
 	//uses my printf and then closes the library! Yay!
 	
-	//printf_ptr("ok bang");
-
-
 	
         //gets the initial time from gettimeofday. tv is the time
         struct timeval tv;
@@ -47,58 +43,13 @@ int printf(const char *format, ...){
         gettimeofday(&tv, NULL);
         today = localtime(&tv.tv_sec);
 
-        //gets all needed time components
-        double  hour = today->tm_hour;
-        char buffer[50];
+	printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
 
+	
+	printf_ptr(format);
 
-        double min = today->tm_min;
-        char buffer2[50];
-
-        double sec = today->tm_sec;
-        char buffer3[50];
-
-        double msec = tv.tv_usec;
-        char buffer4[50];
-
-        //converts time components to strings
-        sprintf_ptr(buffer, "%f", hour);
-        sprintf_ptr(buffer2, "%f", min);
-        sprintf_ptr(buffer3, "%f", sec);
-        sprintf_ptr(buffer4, "%f", msec);
-		
 	dlclose(handle);
-        //Gets rid of trailing 0s
-        int length = strlen(buffer);
-        buffer[length-7] = '\0';
 
-        int length2 = strlen(buffer2);
-        buffer2[length2-7] = '\0';
-
-	 int length3 = strlen(buffer3);
-        buffer3[length3-7] = '\0';
-
-        int length4 = strlen(buffer4);
-        buffer4[length4-7] = '\0';
-
-        //concatonates time stamp
-        char stamp[50] = "Time stamp: ";
-        strcat(stamp, buffer);
-        strcat(stamp, ":");
-        strcat(stamp,buffer2);
-        strcat(stamp, ":");
-        strcat(stamp,buffer3);
-        strcat(stamp, ":");
-        strcat(stamp,buffer4);
-        puts(stamp);
-
-        //prints original message
-        va_list args;
-        va_start(args, format);
-        //vprintf(format, args);
-        puts(format);
-        //vprintf("", args);
-        va_end(args);
 
         return 0;
 }
@@ -116,9 +67,8 @@ int sprintf(char *buffer, const char *format, ...){
                 return EXIT_FAILURE;
         }
 
-        //myPrintf = dlsym(handle, "printf");
 
-        int (*sprintf_ptr)(const char *format, ...) = dlsym(handle, "sprintf");
+        int (*sprintf_ptr)(char *buffer, const char *format, ...) = dlsym(handle, "sprintf");
         if (!sprintf_ptr) {
                 //if symbol can't be found (should be the needed function I'm replacing)
                 fprintf(stderr, "Error: %s\n", dlerror());
@@ -128,9 +78,7 @@ int sprintf(char *buffer, const char *format, ...){
 
         //uses my printf and then closes the library! Yay!
 
-        //printf_ptr("ok bang");
 
-	printf("ok do that");
         //gets the initial time from gettimeofday. tv is the time
         struct timeval tv;
 
@@ -139,61 +87,537 @@ int sprintf(char *buffer, const char *format, ...){
 	gettimeofday(&tv, NULL);
         today = localtime(&tv.tv_sec);
 
-        //gets all needed time components
-        double  hour = today->tm_hour;
-        char buffer[50];
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
 
 
-        double min = today->tm_min;
-        char buffer2[50];
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
 
-        double sec = today->tm_sec;
-        char buffer3[50];
 
-        double msec = tv.tv_usec;
-        char buffer4[50];
-
-        //converts time components to strings
-        sprintf_ptr(buffer, "%f", hour);
-        sprintf_ptr(buffer2, "%f", min);
-        sprintf_ptr(buffer3, "%f", sec);
-        sprintf_ptr(buffer4, "%f", msec);
+	printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+	
+	dlclose(handle2);
+	sprintf_ptr(buffer, format);
 
 	dlclose(handle);
-
-
-        //Gets rid of trailing 0s
-        int length = strlen(buffer);
-        buffer[length-7] = '\0';
-
-        int length2 = strlen(buffer2);
-        buffer2[length2-7] = '\0';
-
-         int length3 = strlen(buffer3);
-        buffer3[length3-7] = '\0';
-
-        int length4 = strlen(buffer4);
-        buffer4[length4-7] = '\0';
-
-	//concatonates time stamp
-        char stamp[50] = "Time stamp: ";
-        strcat(stamp, buffer);
-        strcat(stamp, ":");
-        strcat(stamp,buffer2);
-        strcat(stamp, ":");
-        strcat(stamp,buffer3);
-        strcat(stamp, ":");
-        strcat(stamp,buffer4);
-        puts(stamp);
-
-        //prints original message
-        va_list args;
-        va_start(args, format);
-        //vprintf(format, args);
-        puts(format);
-        //vprintf("", args);
-        va_end(args);
 
         return 0;
 
 }
+
+int dprintf(int fd, const char *format, ...){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*dprintf_ptr)(int fd, const char *format, ...) = dlsym(handle, "dprintf");
+        if (!dprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        dprintf_ptr(fd, format);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int fprintf(FILE *stream, const char *format, ...){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*fprintf_ptr)(FILE *stream, const char *format, ...) = dlsym(handle, "fprintf");
+        if (!fprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        fprintf_ptr(stream, format);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int snprintf(char *str, size_t size,  const char *format, ...){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*snprintf_ptr)(char *str, size_t size, const char *format, ...) = dlsym(handle, "snprintf");
+        if (!snprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        snprintf_ptr(str, size, format);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int vprintf(const char *format, va_list ap){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*vprintf_ptr)(const char *format, va_list ap) = dlsym(handle, "vprintf");
+        if (!vprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+
+	struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        vprintf_ptr(format, ap);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int vfprintf(FILE *stream, const char *format, va_list ap){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*vfprintf_ptr)(FILE *stream, const char *format, va_list ap) = dlsym(handle, "vfprintf");
+        if (!vfprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        vfprintf_ptr(stream, format, ap);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int vdprintf(int fd, const char *format, va_list ap){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*vdprintf_ptr)(int fd, const char *format, va_list ap) = dlsym(handle, "vdprintf");
+        if (!vdprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        vdprintf_ptr(fd, format, ap);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int vsprintf(char *str, const char *format, va_list ap){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*vsprintf_ptr)(char *str, const char *format, va_list ap) = dlsym(handle, "vsprintf");
+        if (!vsprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        vsprintf_ptr(str, format, ap);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
+int vsnprintf(char *str, size_t size, const char *format, va_list ap){
+
+        //sets up dlopen to open the shared library containing print
+        void *handle;
+
+        handle = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*vsnprintf_ptr)(char *str, size_t size, const char *format, va_list ap) = dlsym(handle, "vsnprintf");
+        if (!vsnprintf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        //gets the initial time from gettimeofday. tv is the time
+        struct timeval tv;
+
+        struct tm *today;
+
+        gettimeofday(&tv, NULL);
+        today = localtime(&tv.tv_sec);
+
+
+	void *handle2;
+
+        handle2 = dlopen("libc.so.6", RTLD_LAZY);
+        if (!handle2){
+                //if failed to load the library
+                fprintf(stderr, "Error: %s\n", dlerror());
+                return EXIT_FAILURE;
+        }
+
+
+        int (*printf_ptr)(const char *format, ...) = dlsym(handle, "printf");
+        if (!printf_ptr) {
+                //if symbol can't be found (should be the needed function I'm replacing)
+                fprintf(stderr, "Error: %s\n", dlerror());
+                dlclose(handle);
+                return EXIT_FAILURE;
+        }
+
+
+        printf_ptr("Time: %d:%0d:%0d.%d\n", today->tm_hour, today->tm_min, today->tm_sec, tv.tv_usec);
+
+        dlclose(handle2);
+
+
+        vsnprintf_ptr(str, size, format, ap);
+
+        dlclose(handle);
+
+        return 0;
+
+}
+
